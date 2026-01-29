@@ -34,9 +34,9 @@ A ENIAC Systems nasceu da paixão de um programador empenhado em solucionar desa
 - **[RABBIT](https://eniacsystems.com.br/Internal_System/RABBIT/)** - Sistema profissional de gerenciamento de arquivos com upload múltiplo e busca avançada (98% concluído)
 - **[PhotoVault Cloud](https://eniacsystems.com.br/Internal_System/PhotoVaultCloud/)** - Plataforma para fotógrafos com armazenamento e aplicação automática de marca d'água (40% concluído)
 - **[SC Hospital Manager](https://eniacsystems.com.br/Internal_System/SCHospitalManager/)** - Gestão hospitalar completa e simplificada (20% concluído)
-- **BSS (Bling Stock Synchronization)** - Integração e sincronização inteligente de estoque (0% concluído)
-- **MecanicSystem** - Gestão para oficinas e mecânicas (0% concluído)
-- **SimpleFinance** - Controle financeiro simplificado (5% concluído)
+- **[BSS (Bling Stock Synchronization)](https://eniacsystems.com.br/Internal_System/BSS/)** - Integração e sincronização inteligente de estoque (0% concluído)
+- **[MecanicSystem](https://eniacsystems.com.br/Internal_System/MecanicSystem/)** - Gestão para oficinas e mecânicas (0% concluído)
+- **[SimpleFinance](https://eniacsystems.com.br/Internal_System/SimpleFinance/)** - Controle financeiro simplificado (5% concluído)
 
 ## 🤝 Como Trabalhamos
 

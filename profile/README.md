@@ -9,15 +9,15 @@
 
 ## 🚀 Sobre a ENIAC
 
-A ENIAC Systems desenvolve soluções tecnológicas completas e personalizadas para potencializar negócios de todos os portes. Combinamos expertise técnica com entendimento do mercado para entregar sistemas que realmente resolvem problemas.
+A ENIAC Systems nasceu da paixão de um programador empenhado em solucionar desafios empresariais através da tecnologia. Como profissionais em constante aprendizado, temos orgulho de desenvolver ferramentas inovadoras e eficientes que impulsionam o sucesso de nossos clientes, transformando desafios em soluções sustentáveis e eficazes.
 
 ## 🛠️ Nossas Especialidades
 
-- **Desenvolvimento de Software Sob Medida**
-- **Sistemas Web e Aplicativos Mobile**
-- **Integração de APIs e Sistemas Legados**
-- **Consultoria em Arquitetura de TI**
-- **Suporte Técnico e Manutenção Evolutiva**
+- **Desenvolvimento de Software Sob Medida**: Criação de ferramentas exclusivas projetadas para resolver problemas específicos do seu fluxo de trabalho.
+- **Sistemas Web de Alta Performance**: Aplicações robustas utilizando PHP, Node.js e AJAX para uma experiência de usuário fluida e rápida.
+- **Gestão e Automação de Processos**: Desenvolvimento de dashboards e sistemas internos (ERP/CRM) que otimizam a produtividade empresarial.
+- **Segurança e Armazenamento de Dados**: Soluções inteligentes de custódia de arquivos e proteção de propriedade intelectual.
+- **Integração de Ecossistemas**: Conexão entre diferentes plataformas e APIs (como Bling) para sincronização de dados em tempo real.
 
 ## 💻 Tecnologias & Stack
 
@@ -27,14 +27,14 @@ A ENIAC Systems desenvolve soluções tecnológicas completas e personalizadas p
 | Responsive Design  | PHP       |                | AJAX         |
 |                    | Composer  |                | Git / GitHub |
 
-## 📂 Projetos em Desenvolvimento
+## 📂 Projetos em Destaque
 
 > *Nota: Nossos repositórios principais são privados para proteger a propriedade intelectual dos nossos clientes.*
 
-- **RABBIT** - Sistema profissional de gerenciamento de arquivos com upload múltiplo e busca avançada (98% concluído)
+- **[RABBIT](https://eniacsystems.com.br/Internal_System/RABBIT/)** - Sistema profissional de gerenciamento de arquivos com upload múltiplo e busca avançada (98% concluído)
+- **[PhotoVault Cloud](https://eniacsystems.com.br/Internal_System/PhotoVaultCloud/)** - Plataforma para fotógrafos com armazenamento e aplicação automática de marca d'água (40% concluído)
+- **[SC Hospital Manager](https://eniacsystems.com.br/Internal_System/SCHospitalManager/)** - Gestão hospitalar completa e simplificada (20% concluído)
 - **BSS (Bling Stock Synchronization)** - Integração e sincronização inteligente de estoque (0% concluído)
-- **PhotoVault Cloud** - Plataforma para fotógrafos com armazenamento e aplicação automática de marca d'água (40% concluído)
-- **SC Hospital Manager** - Gestão hospitalar completa (20% concluído)
 - **MecanicSystem** - Gestão para oficinas e mecânicas (0% concluído)
 - **SimpleFinance** - Controle financeiro simplificado (5% concluído)
 

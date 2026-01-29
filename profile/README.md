@@ -1,8 +1,8 @@
-# <img src="https://eniacsystems.com.br/logo.png" width="50" alt="Logo ENIAC"> ENIAC Systems
+# <img src="https://eniacsystems.com.br/arquivo/13/ENIACSystems.png" width="50" alt="Logo ENIAC"> ENIAC Systems
 **Sistemas e soluções diversas para seu negócio**
 
 🔗 **Site Oficial:** [eniacsystems.com.br](https://eniacsystems.com.br)  
-📧 **Contato:** contato@eniacsystems.com.br  
+📧 **Contato:** adm@eniacsystems.com.br  
 📍 **Localização:** Brasil
 
 ---
@@ -21,19 +21,21 @@ A ENIAC Systems desenvolve soluções tecnológicas completas e personalizadas p
 
 ## 💻 Tecnologias & Stack
 
-| Front-end | Back-end | Banco de Dados | DevOps |
-|-----------|----------|----------------|---------|
-| React.js  | Node.js  | PostgreSQL     | Docker  |
-| Vue.js    | Python   | MySQL          | AWS     |
-| TypeScript| PHP      | MongoDB        | GitLab CI|
+| Front-end          | Back-end  | Banco de Dados | Outros       |
+| :----------------- | :-------- | :------------- | :----------- |
+| HTML5 / CSS3       | Node.js   | MySQL          | JavaScript   |
+| Responsive Design  | PHP       |                | Git / GitHub |
 
-## 📂 Projetos Destaque
+## 📂 Projetos em Desenvolvimento
 
 > *Nota: Nossos repositórios principais são privados para proteger a propriedade intelectual dos nossos clientes.*
 
-- **Sistema de Gestão Empresarial** - Plataforma completa para gestão interna
-- **E-commerce Personalizado** - Lojas virtuais de alta performance
-- **APIs de Integração** - Conectividade entre sistemas diversos
+- **RABBIT** - Sistema de alto desempenho (98% concluído)
+- **BSS (Bling Stock Synchronization)** - Integração e sincronização inteligente de estoque (0% concluído)
+- **PhotoVault Cloud** - Plataforma para fotógrafos com armazenamento e aplicação automática de marca d'água (40% concluído)
+- **SC Hospital Manager** - Gestão hospitalar completa (20% concluído)
+- **MecanicSystem** - Gestão para oficinas e mecânicas (0% concluído)
+- **SimpleFinance** - Controle financeiro simplificado (5% concluído)
 
 ## 🤝 Como Trabalhamos
 
@@ -50,7 +52,7 @@ A ENIAC Systems desenvolve soluções tecnológicas completas e personalizadas p
 Tem um projeto em mente? Vamos conversar!
 
 - **Site:** [https://eniacsystems.com.br](https://eniacsystems.com.br)
-- **E-mail:** contato@eniacsystems.com.br
+- **E-mail:** adm@eniacsystems.com.br
 - **GitHub:** [@ENIAC-Systems](https://github.com/ENIAC-Systems)
 
 ---

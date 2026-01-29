@@ -24,13 +24,14 @@ A ENIAC Systems desenvolve soluções tecnológicas completas e personalizadas p
 | Front-end          | Back-end  | Banco de Dados | Outros       |
 | :----------------- | :-------- | :------------- | :----------- |
 | HTML5 / CSS3       | Node.js   | MySQL          | JavaScript   |
-| Responsive Design  | PHP       |                | Git / GitHub |
+| Responsive Design  | PHP       |                | AJAX         |
+|                    | Composer  |                | Git / GitHub |
 
 ## 📂 Projetos em Desenvolvimento
 
 > *Nota: Nossos repositórios principais são privados para proteger a propriedade intelectual dos nossos clientes.*
 
-- **RABBIT** - Sistema de alto desempenho (98% concluído)
+- **RABBIT** - Sistema profissional de gerenciamento de arquivos com upload múltiplo e busca avançada (98% concluído)
 - **BSS (Bling Stock Synchronization)** - Integração e sincronização inteligente de estoque (0% concluído)
 - **PhotoVault Cloud** - Plataforma para fotógrafos com armazenamento e aplicação automática de marca d'água (40% concluído)
 - **SC Hospital Manager** - Gestão hospitalar completa (20% concluído)

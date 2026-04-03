@@ -1,0 +1,47 @@
+# === ENIAC Systems — .gitignore padrão para projetos Laravel ===
+
+# Environment files (CRITICAL - NEVER COMMIT)
+.env
+.env.*
+!.env.example
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Laravel generated
+/public/hot
+/public/storage
+/public/build
+/storage/*.key
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/bootstrap/cache/*.php
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Testing
+.phpunit.cache/
+.phpunit.result.cache
+coverage/
+
+# Build artifacts
+/public/build/
+/public/mix-manifest.json
+
+# Logs (keep directory structure)
+/storage/logs/*.log
+
+# AI agents config (optional, project-specific)
+.claude/
+.codex/
+.cursor/
+.zencoder/

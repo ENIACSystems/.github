@@ -1,0 +1,63 @@
+name: Deploy — FTP Delta Sync
+
+on:
+  workflow_call:
+    inputs:
+      server-dir:
+        description: 'Remote directory on FTP server (e.g., /public_html/projects/rabbit/)'
+        required: true
+        type: string
+      exclude-patterns:
+        description: 'Files/dirs to exclude (newline-separated)'
+        required: false
+        type: string
+        default: |
+          **/.git*
+          **/.git*/**
+          **/node_modules/**
+          **/tests/**
+          **/.env
+          **/storage/logs/**
+          **/storage/framework/cache/**
+    secrets:
+      FTP_SERVER:
+        required: true
+      FTP_USERNAME:
+        required: true
+      FTP_PASSWORD:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring
+
+      - name: Install Composer (production)
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Generate .env from secrets
+        run: |
+          echo "APP_ENV=production" > .env
+          echo "APP_DEBUG=false" >> .env
+          echo "APP_KEY=${{ secrets.APP_KEY || '' }}" >> .env
+
+      - name: FTP Deploy (delta sync)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          server-dir: ${{ inputs.server-dir }}
+          exclude: ${{ inputs.exclude-patterns }}

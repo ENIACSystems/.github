@@ -21,22 +21,27 @@ A ENIAC Systems nasceu da paixão de um programador empenhado em solucionar desa
 
 ## 💻 Tecnologias & Stack
 
-| Front-end          | Back-end  | Banco de Dados | Outros       |
-| :----------------- | :-------- | :------------- | :----------- |
-| HTML5 / CSS3       | Node.js   | MySQL          | JavaScript   |
-| Responsive Design  | PHP       |                | AJAX         |
-|                    | Composer  |                | Git / GitHub |
+| Front-end                | Back-end         | Banco de Dados | DevOps / QA          |
+| :----------------------- | :--------------- | :------------- | :------------------- |
+| Blade + Alpine.js 3.x   | Laravel 11       | MySQL 8.0      | GitHub Actions       |
+| Tailwind CSS             | PHP 8.2+         |                | PHPUnit / Pest       |
+| React / Bootstrap        | Composer         |                | PHPStan + Larastan   |
+| HTML5 / CSS3             | Python (Sentinel)   |             | ENIAC-SENTINEL       |
 
 ## 📂 Projetos em Destaque
 
-> *Nota: Nossos repositórios principais são privados para proteger a propriedade intelectual dos nossos clientes.*
+> *Nota: Nossos repositórios são privados para proteger a propriedade intelectual.*
 
-- **[RABBIT](https://eniacsystems.com.br/Internal_System/RABBIT/)** - Sistema profissional de gerenciamento de arquivos com upload múltiplo e busca avançada (98% concluído)
-- **[PhotoVault Cloud](https://eniacsystems.com.br/Internal_System/PhotoVaultCloud/)** - Plataforma para fotógrafos com armazenamento e aplicação automática de marca d'água (40% concluído)
-- **[SC Hospital Manager](https://eniacsystems.com.br/Internal_System/SCHospitalManager/)** - Gestão hospitalar completa e simplificada (20% concluído)
-- **[BSS (Bling Stock Synchronization)](https://eniacsystems.com.br/Internal_System/BSS/)** - Integração e sincronização inteligente de estoque (0% concluído)
-- **[MecanicSystem](https://eniacsystems.com.br/Internal_System/MecanicSystem/)** - Gestão para oficinas e mecânicas (0% concluído)
-- **[SimpleFinance](https://eniacsystems.com.br/Internal_System/SimpleFinance/)** - Controle financeiro simplificado (5% concluído)
+| Projeto | Descrição | Modelo | Status |
+|---------|-----------|--------|--------|
+| **RABBIT** | Gerenciamento profissional de arquivos | SaaS | 🟡 Em refactor |
+| **PhotoVault Cloud** | Galeria de fotos com marca d'água | SaaS | 🟡 Em refactor |
+| **SC Hospital Manager** | ERP hospitalar completo | Mensalidade B2B | 🟡 Em refactor |
+| **SimpleFinance** | Controle financeiro pessoal | SaaS | 🟡 Em refactor |
+| **BlingStockSync** | Sincronização de estoque Bling | SaaS | 🟡 Em refactor |
+| **MecanicSystem** | ERP para oficinas mecânicas | Mensalidade B2B | 🟡 Em refactor |
+| **ENIAC-SENTINEL** | Plataforma de governança e auditoria de código | SaaS | 🟢 Live |
+| **AudespV-TJSON** | Compliance AUDESP/TCE-SP | Mensalidade B2B | 🟢 Live |
 
 ## 🤝 Como Trabalhamos
 

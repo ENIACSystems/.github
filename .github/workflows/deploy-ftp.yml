@@ -58,18 +58,25 @@ jobs:
           echo "APP_KEY=${{ secrets.APP_KEY || '' }}" >> .env
 
       - name: Install lftp
-        run: sudo apt-get update && sudo apt-get install -y lftp
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends lftp
 
       - name: FTP Deploy (lftp mirror)
         run: |
-          lftp -u "${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }}" "ftp://${{ secrets.FTP_SERVER }}" <<'LFTPSCRIPT'
+          cat > /tmp/lftp-deploy.cmd <<LFTP_CMDS
+          set ssl:verify-certificate no
+          set ftp:ssl-allow true
+          set ftp:ssl-force true
+          set ftp:ssl-auth TLS
+          set ftp:ssl-protect-data true
+          set ftp:ssl-protect-list true
           set ftp:passive-mode true
-          set ftp:ssl-allow no
-          set net:timeout 30
+          set ftp:fix-pasv-address true
+          set ftp:prefer-epsv false
+          set net:timeout 90
           set net:max-retries 3
           set net:reconnect-interval-base 5
-          set mirror:parallel-transfer-count 5
-          mirror -R --delete --verbose \
+          open -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" -p 21 "${{ secrets.FTP_SERVER }}"
+          mirror -R --only-newer --no-empty-dirs --verbose=1 --parallel=3 \
             --exclude-glob .git* \
             --exclude-glob node_modules/ \
             --exclude-glob tests/ \
@@ -77,5 +84,6 @@ jobs:
             --exclude-glob storage/logs/ \
             --exclude-glob storage/framework/cache/ \
             . ${{ inputs.server-dir }}
-          quit
-          LFTPSCRIPT
+          bye
+          LFTP_CMDS
+          lftp -f /tmp/lftp-deploy.cmd

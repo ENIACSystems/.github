@@ -37,6 +37,12 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Checkout shared-lib
+        uses: actions/checkout@v4
+        with:
+          repository: ENIACSystems/shared-lib
+          path: ../shared-lib
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:

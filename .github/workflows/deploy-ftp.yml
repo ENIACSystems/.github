@@ -75,12 +75,36 @@ jobs:
         run: |
           cat > /tmp/_untar_deploy.php <<'PHPEOF'
           <?php
-          // Self-deleting deploy unpack script
-          $tar = __DIR__ . '/_deploy.tar.gz';
+          // Self-deleting deploy unpack + post-deploy setup script
+          $dir = __DIR__;
+          $tar = $dir . '/_deploy.tar.gz';
           if (!file_exists($tar)) { http_response_code(404); die('No archive found'); }
+
+          // 1. Untar
           $out = [];
-          exec("cd " . escapeshellarg(__DIR__) . " && tar xzf _deploy.tar.gz 2>&1", $out, $rc);
+          exec("cd " . escapeshellarg($dir) . " && tar xzf _deploy.tar.gz 2>&1", $out, $rc);
           unlink($tar);
+
+          // 2. Ensure required storage directories exist
+          foreach (['storage/framework/cache', 'storage/framework/sessions', 'storage/framework/views', 'storage/logs'] as $d) {
+              $p = $dir . '/' . $d;
+              if (!is_dir($p)) { mkdir($p, 0755, true); $out[] = "Created $d"; }
+          }
+
+          // 3. Generate .env if missing (with random APP_KEY)
+          $envFile = $dir . '/.env';
+          if (!file_exists($envFile)) {
+              $key = 'base64:' . base64_encode(random_bytes(32));
+              $script = dirname($_SERVER['SCRIPT_NAME'] ?? '');
+              $parts = explode('/', trim($script, '/'));
+              $name = end($parts) ?: 'app';
+              $env  = "APP_NAME=\"$name\"\nAPP_ENV=production\nAPP_KEY=$key\n";
+              $env .= "APP_DEBUG=false\nAPP_URL=https://eniacsystems.com.br/app/$name\n\n";
+              $env .= "LOG_CHANNEL=single\nLOG_LEVEL=warning\n";
+              file_put_contents($envFile, $env);
+              $out[] = "Generated .env with new APP_KEY";
+          }
+
           unlink(__FILE__);
           http_response_code($rc === 0 ? 200 : 500);
           echo json_encode(['rc' => $rc, 'output' => $out]);

@@ -37,11 +37,8 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Checkout shared-lib
-        uses: actions/checkout@v4
-        with:
-          repository: ENIACSystems/shared-lib
-          path: ../shared-lib
+      - name: Clone shared-lib (sibling directory for path repository)
+        run: git clone --depth 1 https://x-access-token:${{ github.token }}@github.com/ENIACSystems/shared-lib.git ../shared-lib
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2

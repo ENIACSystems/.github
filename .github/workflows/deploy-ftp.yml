@@ -117,7 +117,7 @@ jobs:
           REL_PATH=$(echo "${{ inputs.server-dir }}" | sed 's|^/public_html/||; s|/$||')
           URL="https://eniacsystems.com.br/${REL_PATH}/_untar_deploy.php"
           echo "Triggering unpack at: ${URL}"
-          HTTP_CODE=$(curl -s -o /tmp/untar_response.txt -w '%{http_code}' --max-time 120 "${URL}" || true)
+          HTTP_CODE=$(curl -sL -o /tmp/untar_response.txt -w '%{http_code}' --max-time 120 "${URL}" || true)
           cat /tmp/untar_response.txt
           echo ""
           echo "HTTP status: ${HTTP_CODE}"

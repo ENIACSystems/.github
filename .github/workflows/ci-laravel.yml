@@ -1,4 +1,4 @@
-name: CI — Laravel Lint & Test
+name: CI  Laravel Lint & Test
 
 on:
   workflow_call:
@@ -8,6 +8,9 @@ on:
         required: false
         type: string
         default: '8.2'
+    secrets:
+      GH_PAT:
+        required: false
 
 jobs:
   lint-and-test:
@@ -30,6 +33,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Clone shared-lib (private dependency)
+        env:
+          TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            git clone --depth 1 https://x-access-token:${TOKEN}@github.com/ENIACSystems/shared-lib.git ../shared-lib
+          fi
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2

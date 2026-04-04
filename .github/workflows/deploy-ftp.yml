@@ -57,12 +57,25 @@ jobs:
           echo "APP_DEBUG=false" >> .env
           echo "APP_KEY=${{ secrets.APP_KEY || '' }}" >> .env
 
-      - name: FTP Deploy (delta sync)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftp
-          server-dir: ${{ inputs.server-dir }}
-          exclude: ${{ inputs.exclude-patterns }}
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: FTP Deploy (lftp mirror)
+        run: |
+          lftp -u "${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }}" "ftp://${{ secrets.FTP_SERVER }}" <<'LFTPSCRIPT'
+          set ftp:passive-mode true
+          set ftp:ssl-allow no
+          set net:timeout 30
+          set net:max-retries 3
+          set net:reconnect-interval-base 5
+          set mirror:parallel-transfer-count 5
+          mirror -R --delete --verbose \
+            --exclude-glob .git* \
+            --exclude-glob node_modules/ \
+            --exclude-glob tests/ \
+            --exclude-glob .env \
+            --exclude-glob storage/logs/ \
+            --exclude-glob storage/framework/cache/ \
+            . ${{ inputs.server-dir }}
+          quit
+          LFTPSCRIPT

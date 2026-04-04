@@ -60,9 +60,35 @@ jobs:
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends lftp
 
-      - name: FTP Deploy (lftp mirror)
+      - name: Create deploy package
         run: |
-          cat > /tmp/lftp-deploy.cmd <<LFTP_CMDS
+          tar czf /tmp/deploy.tar.gz \
+            --exclude='.git*' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='.env' \
+            --exclude='storage/logs/*' \
+            --exclude='storage/framework/cache/*' \
+            -C . .
+
+      - name: Create untar helper script
+        run: |
+          cat > /tmp/_untar_deploy.php <<'PHPEOF'
+          <?php
+          // Self-deleting deploy unpack script
+          $tar = __DIR__ . '/_deploy.tar.gz';
+          if (!file_exists($tar)) { http_response_code(404); die('No archive found'); }
+          $out = [];
+          exec("cd " . escapeshellarg(__DIR__) . " && tar xzf _deploy.tar.gz 2>&1", $out, $rc);
+          unlink($tar);
+          unlink(__FILE__);
+          http_response_code($rc === 0 ? 200 : 500);
+          echo json_encode(['rc' => $rc, 'output' => $out]);
+          PHPEOF
+
+      - name: Upload archive + untar script via lftp
+        run: |
+          cat > /tmp/lftp-upload.cmd <<LFTP_CMDS
           set ssl:verify-certificate no
           set ftp:ssl-allow true
           set ftp:ssl-force true
@@ -72,18 +98,29 @@ jobs:
           set ftp:passive-mode true
           set ftp:fix-pasv-address true
           set ftp:prefer-epsv false
-          set net:timeout 90
+          set net:timeout 120
           set net:max-retries 3
           set net:reconnect-interval-base 5
           open -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" -p 21 "${{ secrets.FTP_SERVER }}"
-          mirror -R --only-newer --no-empty-dirs --verbose=1 --parallel=3 \
-            --exclude-glob .git* \
-            --exclude-glob node_modules/ \
-            --exclude-glob tests/ \
-            --exclude-glob .env \
-            --exclude-glob storage/logs/ \
-            --exclude-glob storage/framework/cache/ \
-            . ${{ inputs.server-dir }}
+          mkdir -p ${{ inputs.server-dir }}
+          cd ${{ inputs.server-dir }}
+          put /tmp/deploy.tar.gz -o _deploy.tar.gz
+          put /tmp/_untar_deploy.php -o _untar_deploy.php
           bye
           LFTP_CMDS
-          lftp -f /tmp/lftp-deploy.cmd
+          lftp -f /tmp/lftp-upload.cmd
+
+      - name: Unpack archive on server
+        run: |
+          # Derive the public URL from server-dir
+          # server-dir format: /public_html/projects/xxx/
+          REL_PATH=$(echo "${{ inputs.server-dir }}" | sed 's|^/public_html/||; s|/$||')
+          URL="https://eniacsystems.com.br/${REL_PATH}/_untar_deploy.php"
+          echo "Triggering unpack at: ${URL}"
+          HTTP_CODE=$(curl -s -o /tmp/untar_response.txt -w '%{http_code}' --max-time 120 "${URL}" || true)
+          cat /tmp/untar_response.txt
+          echo ""
+          echo "HTTP status: ${HTTP_CODE}"
+          if [ "${HTTP_CODE}" != "200" ]; then
+            echo "::warning::Unpack returned HTTP ${HTTP_CODE} — you may need to run _untar_deploy.php manually"
+          fi

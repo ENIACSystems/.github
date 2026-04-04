@@ -58,10 +58,10 @@ jobs:
           php artisan key:generate
 
       - name: Laravel Pint (code style)
-        run: vendor/bin/pint --test
+        run: php vendor/bin/pint --test
 
       - name: PHPStan (static analysis)
-        run: vendor/bin/phpstan analyse --no-progress
+        run: php vendor/bin/phpstan analyse --no-progress
 
       - name: PHPUnit (tests)
         env:
@@ -73,4 +73,4 @@ jobs:
           DB_PASSWORD: password
         run: |
           php artisan migrate --force
-          vendor/bin/phpunit --coverage-text
+          php vendor/bin/phpunit --coverage-text

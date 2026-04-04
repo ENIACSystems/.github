@@ -49,6 +49,9 @@ jobs:
           extensions: mbstring, pdo_mysql, bcmath, intl
           coverage: xdebug
 
+      - name: Ensure Laravel directories exist
+        run: mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
+
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 

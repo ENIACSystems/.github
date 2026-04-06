@@ -1,5 +1,5 @@
 # <img src="https://eniacsystems.com.br/arquivo/13/ENIACSystems.png" width="50" alt="Logo ENIAC"> ENIAC Systems
-**Sistemas e soluções diversas para seu negócio**
+**ENIAC Systems — Developing the world**
 
 🔗 **Site Oficial:** [eniacsystems.com.br](https://eniacsystems.com.br)  
 📧 **Contato:** adm@eniacsystems.com.br  
@@ -8,6 +8,8 @@
 ---
 
 ## 🚀 Sobre a ENIAC
+
+**ENIAC significa:** Engineering, Networks, Intelligence, Architecture & Code.
 
 A ENIAC Systems nasceu da paixão de um programador empenhado em solucionar desafios empresariais através da tecnologia. Como profissionais em constante aprendizado, temos orgulho de desenvolver ferramentas inovadoras e eficientes que impulsionam o sucesso de nossos clientes, transformando desafios em soluções sustentáveis e eficazes.
 
@@ -35,7 +37,7 @@ A ENIAC Systems nasceu da paixão de um programador empenhado em solucionar desa
 | Projeto | Descrição | Modelo | Status |
 |---------|-----------|--------|--------|
 | **RABBIT** | Gerenciamento profissional de arquivos | SaaS | 🟡 Em refactor |
-| **PhotoVault Cloud** | Galeria de fotos com marca d'água | SaaS | 🟡 Em refactor |
+| **SnapSelect** | Sistema SaaS para fotógrafos com marca d'água automática e seleção por evento | SaaS | 🟡 Em refactor |
 | **SC Hospital Manager** | ERP hospitalar completo | Mensalidade B2B | 🟡 Em refactor |
 | **SimpleFinance** | Controle financeiro pessoal | SaaS | 🟡 Em refactor |
 | **BlingStockSync** | Sincronização de estoque Bling | SaaS | 🟡 Em refactor |

@@ -1,0 +1,48 @@
+name: Validate ENIACCEO orchestration
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  validate-ceo-flow:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR labels for ENIACCEO approval
+        id: label_check
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const labels = github.context.payload.pull_request.labels.map(label => label.name);
+            return labels.includes('ENIACCEO-approved');
+
+      - name: Fetch base branch for diff
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+
+      - name: Scan diff for delegation keywords
+        id: scan_diff
+        run: |
+          set -e
+          MATCHES=$(git diff --no-color --unified=0 origin/${{ github.event.pull_request.base.ref }}...HEAD | grep -En 'ENIACCEO|subagent|runSubagent|callAgent|callSubagent|delegação|delegate|delegar' || true)
+          if [ -n "$MATCHES" ]; then
+            echo "found=true" >> $GITHUB_OUTPUT
+            echo "Delegation-related patterns found:" 
+            echo "$MATCHES"
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fail if delegation changes exist without ENIACCEO approval label
+        if: steps.scan_diff.outputs.found == 'true' && steps.label_check.outputs.result != 'true'
+        run: |
+          echo "::error::Este pull request contém alterações com possíveis chamadas de delegação de agentes e exige o label 'ENIACCEO-approved'." 
+          echo "Por favor, peça aprovação do ENIACCEO ou ajuste os fluxos para cumprir a política." 
+          exit 1

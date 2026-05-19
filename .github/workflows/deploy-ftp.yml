@@ -42,154 +42,137 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 1
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-    - name: Clone shared-lib (sibling directory for path repository)
-      run: git clone --depth 1 https://x-access-token:${{ secrets.GH_PAT }}@github.com/ENIACSystems/shared-lib.git ../shared-lib
+      - name: Clone shared-lib (sibling directory for path repository)
+        run: git clone --depth 1 https://x-access-token:${{ secrets.GH_PAT }}@github.com/ENIACSystems/shared-lib.git ../shared-lib
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: mbstring
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring
 
-    - name: Install Composer (production)
-      run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+      - name: Install Composer (production)
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
-    - name: Install lftp
-      run: sudo apt-get update && sudo apt-get install -y --no-install-recommends lftp
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends lftp
 
-    - name: Create deploy package (no .env — secrets uploaded separately)
-      run: |
-        tar czf /tmp/deploy.tar.gz \
-        --exclude='.git*' \
-        --exclude='node_modules' \
-        --exclude='tests' \
-        --exclude='.env' \
-        --exclude='storage/logs/*' \
-        --exclude='storage/framework/cache/*' \
-        -C . .
+      - name: Create deploy package (no .env — secrets uploaded separately)
+        run: |
+          tar czf /tmp/deploy.tar.gz \
+            --exclude='.git*' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='.env' \
+            --exclude='storage/logs/*' \
+            --exclude='storage/framework/cache/*' \
+            -C . .
 
-    - name: Create untar helper script
-      run: |
-        cat > /tmp/_untar_deploy.php <<'PHPEOF'
-        <?php
-        // Self-deleting deploy unpack script
-        // .env is uploaded separately via lftp (TLS) — never included in tar
-        $dir = __DIR__;
-        $tar = $dir . '/_deploy.tar.gz';
-        if (!file_exists($tar)) { http_response_code(404); die('No archive found'); }
+      - name: Create untar helper script
+        run: |
+          echo '<?php' > /tmp/_untar_deploy.php
+          echo '$dir = __DIR__;' >> /tmp/_untar_deploy.php
+          echo '$tar = $dir . "/_deploy.tar.gz";' >> /tmp/_untar_deploy.php
+          echo 'if (!file_exists($tar)) { http_response_code(404); die("No archive found"); }' >> /tmp/_untar_deploy.php
+          echo '$out = [];' >> /tmp/_untar_deploy.php
+          echo 'exec("cd " . escapeshellarg($dir) . " && tar xzf _deploy.tar.gz 2>&1", $out, $rc);' >> /tmp/_untar_deploy.php
+          echo 'unlink($tar);' >> /tmp/_untar_deploy.php
+          echo "foreach (['storage/framework/cache','storage/framework/sessions','storage/framework/views','storage/logs'] as \$d) {" >> /tmp/_untar_deploy.php
+          echo '  $p = $dir . "/" . $d;' >> /tmp/_untar_deploy.php
+          echo '  if (!is_dir($p)) { mkdir($p, 0755, true); $out[] = "Created $d"; }' >> /tmp/_untar_deploy.php
+          echo '}' >> /tmp/_untar_deploy.php
+          echo 'unlink(__FILE__);' >> /tmp/_untar_deploy.php
+          echo 'http_response_code($rc === 0 ? 200 : 500);' >> /tmp/_untar_deploy.php
+          echo "echo json_encode(['rc' => \$rc, 'output' => \$out]);" >> /tmp/_untar_deploy.php
 
-        // 1. Untar
-        $out = [];
-        exec("cd " . escapeshellarg($dir) . " && tar xzf _deploy.tar.gz 2>&1", $out, $rc);
-        unlink($tar);
+      - name: Upload archive + untar script via lftp
+        run: |
+          echo 'set ssl:verify-certificate no' > /tmp/lftp-upload.cmd
+          echo 'set ftp:ssl-allow true' >> /tmp/lftp-upload.cmd
+          echo 'set ftp:ssl-force true' >> /tmp/lftp-upload.cmd
+          echo 'set ftp:ssl-auth TLS' >> /tmp/lftp-upload.cmd
+          echo 'set ftp:ssl-protect-data true' >> /tmp/lftp-upload.cmd
+          echo 'set ftp:ssl-protect-list true' >> /tmp/lftp-upload.cmd
+          echo 'set ftp:passive-mode true' >> /tmp/lftp-upload.cmd
+          echo 'set ftp:fix-pasv-address true' >> /tmp/lftp-upload.cmd
+          echo 'set ftp:prefer-epsv false' >> /tmp/lftp-upload.cmd
+          echo 'set net:timeout 120' >> /tmp/lftp-upload.cmd
+          echo 'set net:max-retries 3' >> /tmp/lftp-upload.cmd
+          echo 'set net:reconnect-interval-base 5' >> /tmp/lftp-upload.cmd
+          echo "open -u \"${{ secrets.FTP_USERNAME }}\",\"${{ secrets.FTP_PASSWORD }}\" -p 21 \"${{ secrets.FTP_SERVER }}\"" >> /tmp/lftp-upload.cmd
+          echo 'set cmd:fail-exit false' >> /tmp/lftp-upload.cmd
+          echo 'mkdir -p ${{ inputs.server-dir }}' >> /tmp/lftp-upload.cmd
+          echo 'set cmd:fail-exit true' >> /tmp/lftp-upload.cmd
+          echo 'cd ${{ inputs.server-dir }}' >> /tmp/lftp-upload.cmd
+          echo 'put /tmp/deploy.tar.gz -o _deploy.tar.gz' >> /tmp/lftp-upload.cmd
+          echo 'put /tmp/_untar_deploy.php -o _untar_deploy.php' >> /tmp/lftp-upload.cmd
+          echo 'bye' >> /tmp/lftp-upload.cmd
+          lftp -f /tmp/lftp-upload.cmd
 
-        // 2. Ensure required storage directories exist
-        foreach (['storage/framework/cache', 'storage/framework/sessions', 'storage/framework/views', 'storage/logs'] as $d) {
-          $p = $dir . '/' . $d;
-          if (!is_dir($p)) { mkdir($p, 0755, true); $out[] = "Created $d"; }
-        }
+      - name: Unpack archive on server
+        run: |
+          REL_PATH=$(echo "${{ inputs.server-dir }}" | sed 's|^/public_html/||; s|/$||')
+          URL="https://${{ inputs.app-domain }}/${REL_PATH}/_untar_deploy.php"
+          echo "Triggering unpack at: ${URL}"
+          HTTP_CODE=$(curl -sL -o /tmp/untar_response.txt -w '%{http_code}' --max-time 120 "${URL}" || true)
+          cat /tmp/untar_response.txt
+          echo ""
+          echo "HTTP status: ${HTTP_CODE}"
+          if [ "${HTTP_CODE}" != "200" ]; then
+            echo "::warning::Unpack returned HTTP ${HTTP_CODE} — attempting remote cleanup"
+            echo 'set ssl:verify-certificate no' > /tmp/lftp-cleanup.cmd
+            echo 'set ftp:ssl-allow true' >> /tmp/lftp-cleanup.cmd
+            echo 'set ftp:ssl-force true' >> /tmp/lftp-cleanup.cmd
+            echo 'set ftp:ssl-auth TLS' >> /tmp/lftp-cleanup.cmd
+            echo 'set ftp:ssl-protect-data true' >> /tmp/lftp-cleanup.cmd
+            echo 'set ftp:ssl-protect-list true' >> /tmp/lftp-cleanup.cmd
+            echo 'set ftp:passive-mode true' >> /tmp/lftp-cleanup.cmd
+            echo 'set ftp:fix-pasv-address true' >> /tmp/lftp-cleanup.cmd
+            echo 'set ftp:prefer-epsv false' >> /tmp/lftp-cleanup.cmd
+            echo 'set net:timeout 30' >> /tmp/lftp-cleanup.cmd
+            echo 'set net:max-retries 2' >> /tmp/lftp-cleanup.cmd
+            echo "open -u \"${{ secrets.FTP_USERNAME }}\",\"${{ secrets.FTP_PASSWORD }}\" -p 21 \"${{ secrets.FTP_SERVER }}\"" >> /tmp/lftp-cleanup.cmd
+            echo 'cd ${{ inputs.server-dir }}' >> /tmp/lftp-cleanup.cmd
+            echo 'rm -f _untar_deploy.php _deploy.tar.gz' >> /tmp/lftp-cleanup.cmd
+            echo 'bye' >> /tmp/lftp-cleanup.cmd
+            lftp -f /tmp/lftp-cleanup.cmd || true
+            echo "::error::Unpack failed — deploy aborted before .env upload"
+            exit 1
+          fi
 
-        unlink(__FILE__);
-        http_response_code($rc === 0 ? 200 : 500);
-        echo json_encode(['rc' => $rc, 'output' => $out]);
-        PHPEOF
-
-    - name: Upload archive + untar script via lftp
-      run: |
-        cat > /tmp/lftp-upload.cmd <<LFTP_CMDS
-        set ssl:verify-certificate no
-        set ftp:ssl-allow true
-        set ftp:ssl-force true
-        set ftp:ssl-auth TLS
-        set ftp:ssl-protect-data true
-        set ftp:ssl-protect-list true
-        set ftp:passive-mode true
-        set ftp:fix-pasv-address true
-        set ftp:prefer-epsv false
-        set net:timeout 120
-        set net:max-retries 3
-        set net:reconnect-interval-base 5
-open -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" -p 21 "${{ secrets.FTP_SERVER }}"
-set cmd:fail-exit false
-mkdir -p ${{ inputs.server-dir }}
-set cmd:fail-exit true
-cd ${{ inputs.server-dir }}
-        put /tmp/deploy.tar.gz -o _deploy.tar.gz
-        put /tmp/_untar_deploy.php -o _untar_deploy.php
-        bye
-        LFTP_CMDS
-        lftp -f /tmp/lftp-upload.cmd
-
-    - name: Unpack archive on server
-      run: |
-        REL_PATH=$(echo "${{ inputs.server-dir }}" | sed 's|^/public_html/||; s|/$||')
-        URL="https://${{ inputs.app-domain }}/${REL_PATH}/_untar_deploy.php"
-        echo "Triggering unpack at: ${URL}"
-        HTTP_CODE=$(curl -sL -o /tmp/untar_response.txt -w '%{http_code}' --max-time 120 "${URL}" || true)
-        cat /tmp/untar_response.txt
-        echo ""
-        echo "HTTP status: ${HTTP_CODE}"
-        if [ "${HTTP_CODE}" != "200" ]; then
-          echo "::warning::Unpack returned HTTP ${HTTP_CODE} — attempting remote cleanup"
-          cat > /tmp/lftp-cleanup.cmd <<CLEANUP_LFTP
-          set ssl:verify-certificate no
-          set ftp:ssl-allow true
-          set ftp:ssl-force true
-          set ftp:ssl-auth TLS
-          set ftp:ssl-protect-data true
-          set ftp:ssl-protect-list true
-          set ftp:passive-mode true
-          set ftp:fix-pasv-address true
-          set ftp:prefer-epsv false
-          set net:timeout 30
-          set net:max-retries 2
-          open -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" -p 21 "${{ secrets.FTP_SERVER }}"
-          cd ${{ inputs.server-dir }}
-          rm -f _untar_deploy.php _deploy.tar.gz
-          bye
-          CLEANUP_LFTP
-          lftp -f /tmp/lftp-cleanup.cmd || true
-          echo "::error::Unpack failed — deploy aborted before .env upload"
-          exit 1
-        fi
-
-    - name: Upload .env via lftp (TLS — secrets never touch tar or public URL)
-      run: |
-        if [ -z "${{ secrets.APP_KEY }}" ]; then
-          echo "::error::APP_KEY secret is empty — cannot deploy without a valid APP_KEY"
-          exit 1
-        fi
-        cat > /tmp/.env.deploy <<ENVFILE
-        APP_ENV=production
-        APP_DEBUG=false
-        APP_KEY=${{ secrets.APP_KEY }}
-        APP_URL=https://${{ inputs.app-domain }}
-        LOG_CHANNEL=single
-        LOG_LEVEL=warning
-        ENVFILE
-        cat > /tmp/lftp-env.cmd <<LFTP_ENV
-        set ssl:verify-certificate no
-        set ftp:ssl-allow true
-        set ftp:ssl-force true
-        set ftp:ssl-auth TLS
-        set ftp:ssl-protect-data true
-        set ftp:ssl-protect-list true
-        set ftp:passive-mode true
-        set ftp:fix-pasv-address true
-        set ftp:prefer-epsv false
-        set net:timeout 60
-        set net:max-retries 3
-        open -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" -p 21 "${{ secrets.FTP_SERVER }}"
-        cd ${{ inputs.server-dir }}
-        put /tmp/.env.deploy -o .env.tmp
-        mv .env .env.bak
-        mv .env.tmp .env
-        bye
-        LFTP_ENV
-        lftp -f /tmp/lftp-env.cmd
-        rm -f /tmp/.env.deploy
+      - name: Upload .env via lftp (TLS — secrets never touch tar or public URL)
+        run: |
+          if [ -z "${{ secrets.APP_KEY }}" ]; then
+            echo "::error::APP_KEY secret is empty — cannot deploy without a valid APP_KEY"
+            exit 1
+          fi
+          echo 'APP_ENV=production' > /tmp/.env.deploy
+          echo 'APP_DEBUG=false' >> /tmp/.env.deploy
+          echo 'APP_KEY=${{ secrets.APP_KEY }}' >> /tmp/.env.deploy
+          echo 'APP_URL=https://${{ inputs.app-domain }}' >> /tmp/.env.deploy
+          echo 'LOG_CHANNEL=single' >> /tmp/.env.deploy
+          echo 'LOG_LEVEL=warning' >> /tmp/.env.deploy
+          echo 'set ssl:verify-certificate no' > /tmp/lftp-env.cmd
+          echo 'set ftp:ssl-allow true' >> /tmp/lftp-env.cmd
+          echo 'set ftp:ssl-force true' >> /tmp/lftp-env.cmd
+          echo 'set ftp:ssl-auth TLS' >> /tmp/lftp-env.cmd
+          echo 'set ftp:ssl-protect-data true' >> /tmp/lftp-env.cmd
+          echo 'set ftp:ssl-protect-list true' >> /tmp/lftp-env.cmd
+          echo 'set ftp:passive-mode true' >> /tmp/lftp-env.cmd
+          echo 'set ftp:fix-pasv-address true' >> /tmp/lftp-env.cmd
+          echo 'set ftp:prefer-epsv false' >> /tmp/lftp-env.cmd
+          echo 'set net:timeout 60' >> /tmp/lftp-env.cmd
+          echo 'set net:max-retries 3' >> /tmp/lftp-env.cmd
+          echo "open -u \"${{ secrets.FTP_USERNAME }}\",\"${{ secrets.FTP_PASSWORD }}\" -p 21 \"${{ secrets.FTP_SERVER }}\"" >> /tmp/lftp-env.cmd
+          echo 'cd ${{ inputs.server-dir }}' >> /tmp/lftp-env.cmd
+          echo 'put /tmp/.env.deploy -o .env.tmp' >> /tmp/lftp-env.cmd
+          echo 'mv .env .env.bak' >> /tmp/lftp-env.cmd
+          echo 'mv .env.tmp .env' >> /tmp/lftp-env.cmd
+          echo 'bye' >> /tmp/lftp-env.cmd
+          lftp -f /tmp/lftp-env.cmd
+          rm -f /tmp/.env.deploy

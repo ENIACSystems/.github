@@ -114,9 +114,11 @@ jobs:
         set net:timeout 120
         set net:max-retries 3
         set net:reconnect-interval-base 5
-        open -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" -p 21 "${{ secrets.FTP_SERVER }}"
-        mkdir -p ${{ inputs.server-dir }}
-        cd ${{ inputs.server-dir }}
+open -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" -p 21 "${{ secrets.FTP_SERVER }}"
+set cmd:fail-exit false
+mkdir -p ${{ inputs.server-dir }}
+set cmd:fail-exit true
+cd ${{ inputs.server-dir }}
         put /tmp/deploy.tar.gz -o _deploy.tar.gz
         put /tmp/_untar_deploy.php -o _untar_deploy.php
         bye

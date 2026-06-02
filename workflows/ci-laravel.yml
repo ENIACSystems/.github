@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: '8.2'
+      phpstan-level:
+        description: 'PHPStan analysis level (0-9)'
+        required: false
+        type: string
+        default: '5'
     secrets:
       GH_PAT:
         required: false
@@ -15,6 +20,11 @@ on:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        php-version: ['8.2', '8.3']
 
     services:
       mysql:
@@ -45,9 +55,18 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ inputs.php-version }}
-          extensions: mbstring, pdo_mysql, bcmath, intl
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, pdo_mysql, bcmath, intl, zip, gd, imagick
           coverage: xdebug
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-${{ matrix.php-version }}-
+            composer-${{ runner.os }}-
 
       - name: Ensure Laravel directories exist
         run: mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
@@ -64,7 +83,7 @@ jobs:
         run: php vendor/bin/pint --test
 
       - name: PHPStan (static analysis)
-        run: php vendor/bin/phpstan analyse --no-progress
+        run: php vendor/bin/phpstan analyse --no-progress --level ${{ inputs.phpstan-level }}
 
       - name: PHPUnit (tests)
         env:
@@ -76,4 +95,12 @@ jobs:
           DB_PASSWORD: password
         run: |
           php artisan migrate --force
-          php vendor/bin/phpunit --coverage-text
+          php vendor/bin/phpunit --coverage-text --coverage-clover coverage.xml
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-php-${{ matrix.php-version }}
+          path: coverage.xml
+          retention-days: 14

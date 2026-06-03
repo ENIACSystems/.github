@@ -1,0 +1,211 @@
+name: Deploy - FTP Delta Sync
+
+on:
+  workflow_call:
+    inputs:
+      server-dir:
+        description: 'Remote directory on FTP server (e.g., /public_html/projects/rabbit/)'
+        required: true
+        type: string
+      app-domain:
+        description: 'Public domain for the app (e.g., eniacsystems.com.br)'
+        required: false
+        type: string
+        default: 'eniacsystems.com.br'
+    secrets:
+      FTP_SERVER:
+        required: true
+      FTP_USERNAME:
+        required: true
+      FTP_PASSWORD:
+        required: true
+      GH_PAT:
+        required: true
+      APP_KEY:
+        description: 'Laravel APP_KEY - uploaded via TLS after unpack, never included in tar'
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Clone shared-lib (sibling directory for path repository)
+        run: git clone --depth 1 https://x-access-token:${{ secrets.GH_PAT }}@github.com/ENIACSystems/shared-lib.git ../shared-lib
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring
+
+      - name: Install Composer (production)
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends lftp
+
+      - name: Create deploy package (no .env - secrets uploaded separately)
+        run: |
+          tar czf /tmp/deploy.tar.gz \
+            --exclude='.git*' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='.env' \
+            --exclude='storage/logs/*' \
+            --exclude='storage/framework/cache/*' \
+            -C . .
+
+      - name: Create untar helper script
+        run: |
+          cat > /tmp/_untar_deploy.php << 'PHPEOF'
+          <?php
+          $dir = __DIR__;
+          $tar = "$dir/_deploy.tar.gz";
+          if (!file_exists($tar)) {
+              http_response_code(404);
+              echo json_encode(['error' => 'No archive found']);
+              exit;
+          }
+          $out = [];
+          exec("cd " . escapeshellarg($dir) . " && tar xzf _deploy.tar.gz 2>&1", $out, $rc);
+          unlink($tar);
+          foreach (['storage/framework/cache','storage/framework/sessions','storage/framework/views','storage/logs'] as $d) {
+              $p = "$dir/$d";
+              if (!is_dir($p)) {
+                  mkdir($p, 0755, true);
+                  $out[] = "Created $d";
+              }
+          }
+          unlink(__FILE__);
+          http_response_code($rc === 0 ? 200 : 500);
+          echo json_encode(['rc' => $rc, 'output' => $out]);
+          PHPEOF
+
+      - name: Upload archive + untar script via lftp
+        run: |
+          LFTP_OPTS="set ssl:verify-certificate no"
+          LFTP_OPTS="$LFTP_OPTS; set ftp:ssl-allow true"
+          LFTP_OPTS="$LFTP_OPTS; set ftp:ssl-force true"
+          LFTP_OPTS="$LFTP_OPTS; set ftp:ssl-auth TLS"
+          LFTP_OPTS="$LFTP_OPTS; set ftp:ssl-protect-data true"
+          LFTP_OPTS="$LFTP_OPTS; set ftp:ssl-protect-list true"
+          LFTP_OPTS="$LFTP_OPTS; set ftp:passive-mode true"
+          LFTP_OPTS="$LFTP_OPTS; set ftp:fix-pasv-address true"
+          LFTP_OPTS="$LFTP_OPTS; set ftp:prefer-epsv false"
+          LFTP_OPTS="$LFTP_OPTS; set net:timeout 120"
+          LFTP_OPTS="$LFTP_OPTS; set net:max-retries 3"
+          LFTP_OPTS="$LFTP_OPTS; set net:reconnect-interval-base 5"
+
+          cat > /tmp/lftp-upload.cmd << EOF
+          $LFTP_OPTS
+          open -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" -p 21 "${{ secrets.FTP_SERVER }}"
+          set cmd:fail-exit false
+          mkdir -p ${{ inputs.server-dir }}
+          set cmd:fail-exit true
+          cd ${{ inputs.server-dir }}
+          put /tmp/deploy.tar.gz -o _deploy.tar.gz
+          put /tmp/_untar_deploy.php -o _untar_deploy.php
+          bye
+          EOF
+          lftp -f /tmp/lftp-upload.cmd
+
+      - name: Unpack archive on server
+        run: |
+          REL_PATH=$(echo "${{ inputs.server-dir }}" | sed 's|^/public_html/||; s|/$||')
+          URL="https://${{ inputs.app-domain }}/${REL_PATH}/_untar_deploy.php"
+          echo "Triggering unpack at: ${URL}"
+          HTTP_CODE=$(curl -sL -o /tmp/untar_response.txt -w '%{http_code}' --max-time 120 "${URL}" || true)
+          cat /tmp/untar_response.txt
+          echo ""
+          echo "HTTP status: ${HTTP_CODE}"
+          if [ "${HTTP_CODE}" != "200" ]; then
+            echo "::warning::Unpack returned HTTP ${HTTP_CODE} - attempting remote cleanup"
+            cat > /tmp/lftp-cleanup.cmd << CLEANEOF
+            set ssl:verify-certificate no
+            set ftp:ssl-allow true
+            set ftp:ssl-force true
+            set ftp:ssl-auth TLS
+            set ftp:ssl-protect-data true
+            set ftp:ssl-protect-list true
+            set ftp:passive-mode true
+            set ftp:fix-pasv-address true
+            set ftp:prefer-epsv false
+            set net:timeout 30
+            set net:max-retries 2
+            open -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" -p 21 "${{ secrets.FTP_SERVER }}"
+            cd ${{ inputs.server-dir }}
+            rm -f _untar_deploy.php _deploy.tar.gz
+            bye
+            CLEANEOF
+            lftp -f /tmp/lftp-cleanup.cmd || true
+            echo "::error::Unpack failed - deploy aborted before .env upload"
+            exit 1
+          fi
+
+      - name: Upload .env via lftp (TLS - secrets never touch tar or public URL)
+        run: |
+          if [ -z "${{ secrets.APP_KEY }}" ]; then
+            echo "::error::APP_KEY secret is empty - cannot deploy without a valid APP_KEY"
+            exit 1
+          fi
+          echo 'APP_ENV=production' > /tmp/.env.deploy
+          echo 'APP_DEBUG=false' >> /tmp/.env.deploy
+          echo 'APP_KEY=${{ secrets.APP_KEY }}' >> /tmp/.env.deploy
+          echo 'APP_URL=https://${{ inputs.app-domain }}' >> /tmp/.env.deploy
+          echo 'LOG_CHANNEL=single' >> /tmp/.env.deploy
+          echo 'LOG_LEVEL=warning' >> /tmp/.env.deploy
+          cat > /tmp/lftp-env.cmd << ENVEOF
+          set ssl:verify-certificate no
+          set ftp:ssl-allow true
+          set ftp:ssl-force true
+          set ftp:ssl-auth TLS
+          set ftp:ssl-protect-data true
+          set ftp:ssl-protect-list true
+          set ftp:passive-mode true
+          set ftp:fix-pasv-address true
+          set ftp:prefer-epsv false
+          set net:timeout 60
+          set net:max-retries 3
+          open -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" -p 21 "${{ secrets.FTP_SERVER }}"
+          cd ${{ inputs.server-dir }}
+          put /tmp/.env.deploy -o .env.tmp
+          mv .env .env.bak
+          mv .env.tmp .env
+          bye
+          ENVEOF
+          lftp -f /tmp/lftp-env.cmd
+          rm -f /tmp/.env.deploy
+
+      - name: Verify deployment
+        run: |
+          REL_PATH=$(echo "${{ inputs.server-dir }}" | sed 's|^/public_html/||; s|/$||')
+          SITE_URL="https://${{ inputs.app-domain }}/${REL_PATH}"
+          echo "Verifying deployment at: ${SITE_URL}"
+          HTTP_CODE=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 30 "${SITE_URL}" || true)
+          echo "HTTP status: ${HTTP_CODE}"
+          if [ "${HTTP_CODE}" -ge 200 ] && [ "${HTTP_CODE}" -lt 400 ]; then
+            echo "Deployment verified - site is responding (HTTP ${HTTP_CODE})"
+          else
+            echo "::warning::Site returned HTTP ${HTTP_CODE} - may need manual verification"
+          fi
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          {
+            echo "## Deployment Summary"
+            echo ""
+            echo "| Item | Value |"
+            echo "|------|-------|"
+            echo "| **Server Dir** | \`${{ inputs.server-dir }}\` |"
+            echo "| **App Domain** | \`${{ inputs.app-domain }}\` |"
+            echo "| **Timestamp** | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |"
+            echo ""
+          } >> $GITHUB_STEP_SUMMARY

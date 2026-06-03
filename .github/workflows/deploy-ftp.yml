@@ -125,25 +125,25 @@ jobs:
           cat /tmp/untar_response.txt
           echo ""
           echo "HTTP status: ${HTTP_CODE}"
+          cat > /tmp/lftp-cleanup.cmd << CLEANEOF
+          set ssl:verify-certificate no
+          set ftp:ssl-allow true
+          set ftp:ssl-force true
+          set ftp:ssl-auth TLS
+          set ftp:ssl-protect-data true
+          set ftp:ssl-protect-list true
+          set ftp:passive-mode true
+          set ftp:fix-pasv-address true
+          set ftp:prefer-epsv false
+          set net:timeout 30
+          set net:max-retries 2
+          open -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" -p 21 "${{ secrets.FTP_SERVER }}"
+          cd ${{ inputs.server-dir }}
+          rm -f _untar_deploy.php _deploy.tar.gz
+          bye
+          CLEANEOF
           if [ "${HTTP_CODE}" != "200" ]; then
             echo "::warning::Unpack returned HTTP ${HTTP_CODE} - attempting remote cleanup"
-            cat > /tmp/lftp-cleanup.cmd << CLEANEOF
-            set ssl:verify-certificate no
-            set ftp:ssl-allow true
-            set ftp:ssl-force true
-            set ftp:ssl-auth TLS
-            set ftp:ssl-protect-data true
-            set ftp:ssl-protect-list true
-            set ftp:passive-mode true
-            set ftp:fix-pasv-address true
-            set ftp:prefer-epsv false
-            set net:timeout 30
-            set net:max-retries 2
-            open -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" -p 21 "${{ secrets.FTP_SERVER }}"
-            cd ${{ inputs.server-dir }}
-            rm -f _untar_deploy.php _deploy.tar.gz
-            bye
-            CLEANEOF
             lftp -f /tmp/lftp-cleanup.cmd || true
             echo "::error::Unpack failed - deploy aborted before .env upload"
             exit 1

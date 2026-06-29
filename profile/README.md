@@ -1,4 +1,4 @@
-# <img src="https://eniacsystems.com.br/arquivo/13/ENIACSystems.png" width="50" alt="Logo ENIAC"> ENIAC Systems
+# <img src="logo-eniac.png" width="50" alt="Logo ENIAC"> ENIAC Systems
 **ENIAC Systems — Developing the world**
 
 🔗 **Site Oficial:** [eniacsystems.com.br](https://eniacsystems.com.br)  
